@@ -1,7 +1,8 @@
-env/
+venv/
 db/
 __pycache__/
 application_key.json
+authentication.json
 ai-data.json
 
 # Tasks
