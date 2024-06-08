@@ -1,9 +1,10 @@
 import sys
 import os
 import streamlit as st
-sys.path.append(os.path.abspath('../../'))
-from tasks.task_3.task_3 import DocumentProcessor
-from tasks.task_4.task_4 import EmbeddingClient
+import chromadb
+sys.path.append(os.path.abspath('tasks'))
+from task_3.task_3 import DocumentProcessor
+from task_4.task_4 import EmbeddingClient
 
 
 # Import Task libraries
@@ -57,6 +58,7 @@ class ChromaCollectionCreator:
         # Use a TextSplitter from Langchain to split the documents into smaller text chunks
         # https://python.langchain.com/docs/modules/data_connection/document_transformers/character_text_splitter
         # [Your code here for splitting documents]
+        texts = CharacterTextSplitter(separator="\n", chunk_size=1000, chunk_overlap=100).split_documents(self.processor.pages)
         
         if texts is not None:
             st.success(f"Successfully split pages to {len(texts)} documents!", icon="✅")
@@ -65,6 +67,8 @@ class ChromaCollectionCreator:
         # https://docs.trychroma.com/
         # Create a Chroma in-memory client using the text chunks and the embeddings model
         # [Your code here for creating Chroma collection]
+        chroma_client = chromadb.Client()
+        self.db = Chroma.from_documents(texts, embedding=self.embed_model.client, client=chroma_client)
         
         if self.db:
             st.success("Successfully created Chroma Collection!", icon="✅")
@@ -86,6 +90,13 @@ class ChromaCollectionCreator:
                 st.error("No matching documents found!", icon="🚨")
         else:
             st.error("Chroma Collection has not been created!", icon="🚨")
+    
+    #  create an .as_retriever() method to return the Chroma collection as a retriever
+    def as_retriever(self):
+        """
+        Return the Chroma collection as a retriever.
+        """
+        return self.db.as_retriever()
 
 if __name__ == "__main__":
     processor = DocumentProcessor() # Initialize from Task 3
@@ -93,8 +104,8 @@ if __name__ == "__main__":
     
     embed_config = {
         "model_name": "textembedding-gecko@003",
-        "project": "YOUR PROJECT ID HERE",
-        "location": "us-central1"
+        "project": "sample-mission-423323",
+        "location": "us-east1"
     }
     
     embed_client = EmbeddingClient(**embed_config) # Initialize from Task 4

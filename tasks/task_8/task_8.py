@@ -2,10 +2,11 @@ import streamlit as st
 import os
 import sys
 import json
-sys.path.append(os.path.abspath('../../'))
-from tasks.task_3.task_3 import DocumentProcessor
-from tasks.task_4.task_4 import EmbeddingClient
-from tasks.task_5.task_5 import ChromaCollectionCreator
+import re
+sys.path.append(os.path.abspath('tasks'))
+from task_3.task_3 import DocumentProcessor
+from task_4.task_4 import EmbeddingClient
+from task_5.task_5 import ChromaCollectionCreator
 
 from langchain_core.prompts import PromptTemplate
 from langchain_google_vertexai import VertexAI
@@ -101,7 +102,16 @@ class QuizGenerator:
 
         # Invoke the chain with the topic as input
         response = chain.invoke(self.topic)
+
+        if response.startswith('```') and response.endswith('```'):
+            response = response.strip('```json').strip().strip('```').strip()
+
+        # Ensure the response is a JSON string
+        if isinstance(response, dict):
+            response = json.dumps(response)
         return response
+    
+    
 
     def generate_quiz(self) -> list:
         """
@@ -125,21 +135,22 @@ class QuizGenerator:
 
         for _ in range(self.num_questions):
             ##### YOUR CODE HERE #####
-            question_str = # Use class method to generate question
-            
+            question_str = self.generate_question_with_vectorstore()
+
+            if not question_str:
+                #print("Generated question string is empty or None.")
+                continue
             ##### YOUR CODE HERE #####
             try:
                 # Convert the JSON String to a dictionary
+                question = json.loads(question_str)
             except json.JSONDecodeError:
                 print("Failed to decode question JSON.")
-                continue  # Skip this iteration if JSON decoding fails
-            ##### YOUR CODE HERE #####
-
-            ##### YOUR CODE HERE #####
-            # Validate the question using the validate_question method
+                continue
             if self.validate_question(question):
                 print("Successfully generated unique question")
                 # Add the valid and unique question to the bank
+                self.question_bank.append(question)
             else:
                 print("Duplicate or invalid question detected.")
             ##### YOUR CODE HERE #####
@@ -168,6 +179,16 @@ class QuizGenerator:
         """
         ##### YOUR CODE HERE #####
         # Consider missing 'question' key as invalid in the dict object
+        if 'question' not in question:
+            return False
+        # Extract the question text from the provided dictionary
+        question_text = question['question']
+        # Iterate over the existing questions in question_bank
+        is_unique = True
+        for q in self.question_bank:
+            if q['question'] == question_text:
+                is_unique = False
+                break
         # Check if a question with the same text already exists in the self.question_bank
         ##### YOUR CODE HERE #####
         return is_unique
@@ -178,7 +199,7 @@ if __name__ == "__main__":
     
     embed_config = {
         "model_name": "textembedding-gecko@003",
-        "project": "YOUR-PROJECT-ID-HERE",
+        "project": "sample-mission-423323",
         "location": "us-central1"
     }
     
